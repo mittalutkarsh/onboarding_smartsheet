@@ -11,10 +11,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-  # Auto-refresh: re-pull the sheet and republish every 3 hours. (Editing the
-  # Smartsheet does not trigger this directly; the page updates on the next run.)
+  # Auto-refresh: re-pull the sheet and republish every 5 minutes (GitHub's
+  # minimum interval; runs may be delayed under load). Editing the Smartsheet
+  # does not trigger this directly; the page updates on the next run.
   schedule:
-    - cron: "0 */3 * * *"
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
