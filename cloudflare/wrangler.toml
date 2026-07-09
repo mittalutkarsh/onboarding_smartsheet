@@ -1,0 +1,17 @@
+# Cloudflare Worker config (for the `wrangler` CLI deploy path).
+# Dashboard-only users can ignore this file — see cloudflare/README.md.
+name = "onboarding-dashboard-cron"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Cron Trigger: every 5 minutes. Cloudflare cron is reliable (min interval 1m),
+# so you can tighten to "*/2 * * * *" or "* * * * *" if you want fresher.
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Plain (non-secret) variable: which repo to trigger.
+[vars]
+GH_REPO = "mittalutkarsh/onboarding_smartsheet"
+
+# GH_TOKEN is a SECRET — do NOT put it here. Set it with:
+#   wrangler secret put GH_TOKEN
