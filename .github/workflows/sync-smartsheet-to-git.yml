@@ -1,0 +1,41 @@
+# Week-1 scope: MANUAL trigger only.
+#
+# The spec (§12) includes a 6-hourly `schedule:` cron here, but the task
+# boundary for Week-1 is "no cron workflow unless I ask". So the scheduled
+# trigger is left COMMENTED OUT below and can be enabled in Week-3 hardening.
+# The file itself is kept to match the spec's repo tree.
+name: Sync Smartsheet to Git
+
+on:
+  workflow_dispatch:
+  # --- Week-3: uncomment to enable scheduled sync (spec §12) ---
+  # schedule:
+  #   - cron: "0 */6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout automation repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # gh CLI is preinstalled on GitHub-hosted ubuntu runners and picks up
+      # GH_TOKEN/GITHUB_TOKEN from the environment for authentication.
+      - name: Run onboarding sync
+        env:
+          SMARTSHEET_TOKEN: ${{ secrets.SMARTSHEET_TOKEN }}
+          SMARTSHEET_SHEET_ID: ${{ secrets.SMARTSHEET_SHEET_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python src/main.py

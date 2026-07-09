@@ -1,0 +1,7 @@
+# Week-1 MVP dependencies (Python 3.11).
+# NOTE: The spec's requirements list PyGithub, but this build uses the `gh` CLI
+# for PRs (spec §10, "Option A"), so PyGithub is intentionally omitted.
+requests>=2.31,<3
+GitPython>=3.1.40,<4
+jinja2>=3.1,<4
+python-dotenv>=1.0,<2

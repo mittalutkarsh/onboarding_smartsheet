@@ -1,0 +1,34 @@
+# Onboarding: {{ app_name }}
+
+This document was generated automatically by **onboarding-automation** from the
+Smartsheet *Git Onboarding Tracker*. It records the onboarding request for this
+repository and is included in the review PR.
+
+## Summary
+
+| Field | Value |
+|---|---|
+| Team | {{ team_name }} |
+| App / Cookbook | {{ app_name }} |
+| GitHub Org | {{ github_org }} |
+| GitHub Repo | {{ github_repo }} |
+| Owner | {{ owner_email }} |
+
+## Environments
+
+{% for env in environments %}
+- {{ env }}
+{% endfor %}
+
+## What this PR adds
+
+- `.github/workflows/deploy-<env>.yml` — one deploy workflow per environment above.
+- `onboarding/app-config.yml` — application configuration.
+- `onboarding/policy-groups.yml` — policy groups and approvers.
+- `onboarding/manifest.yml` — machine-readable onboarding manifest.
+- `docs/onboarding.md` — this document.
+
+## Review
+
+A human reviewer must approve and merge this PR. The automation does **not**
+auto-merge. Once merged, mark the corresponding Smartsheet row as `Merged`.

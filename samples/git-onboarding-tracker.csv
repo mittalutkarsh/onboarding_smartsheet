@@ -1,0 +1,9 @@
+Team Name,GitHub Org,GitHub Repo,App / Cookbook Name,Owner Email,Environments,Onboarding Status,Migration Type,Branch Name,PR URL,Last Sync Time,Validation Status,Notes,Error Message
+Payments Platform,example-org,payments-service,payments-api,payments-lead@example.com,"dev,test,stage,prod",Ready,New onboarding,,,,,,
+Data Insights,example-org,insights-etl,insights-cookbook,data-owner@example.com,"dev,prod",Ready,Existing repo migration,onboarding/insights-cookbook,,,,,
+Mobile Web,example-org,mweb-frontend,mweb-app,,"dev,test",Ready,New onboarding,,,,,,
+Search Team,example-org,search-index,search-svc,search-owner@example.com,"dev,staging",Ready,New onboarding,,,,,,
+Identity,example-org,auth-gateway,auth-app,identity-lead@example.com,"dev,test,stage,prod",New,New onboarding,,,,,,
+Checkout,example-org,checkout-service,checkout-api,checkout-lead@example.com,"dev,test,prod",PR Created,New onboarding,onboarding/checkout-api,https://github.com/example-org/checkout-service/pull/42,2026-07-08T14:22:00Z,Pass,Created branch and PR.,
+Loyalty,example-org,loyalty-rewards,loyalty-app,loyalty-owner@example.com,"dev,prod",Merged,New onboarding,onboarding/loyalty-app,https://github.com/example-org/loyalty-rewards/pull/17,2026-07-05T09:10:00Z,Pass,Merged by reviewer.,
+Inventory,example-org,inventory-sync,inventory-cookbook,inventory-owner@example.com,"dev,test,stage,prod",Blocked,Existing repo migration,,,2026-07-07T11:45:00Z,Fail,,Missing required field: GitHub Repo
