@@ -8,6 +8,7 @@ onboarding-repos-*/
 # Dry-run rendered output
 .dry-run/
 ci-dry-run/
+demo-output/
 
 # Python
 __pycache__/

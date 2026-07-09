@@ -185,7 +185,10 @@ def main(argv=None) -> int:
     parser.add_argument("--dashboard-port", type=int, default=8000)
     args = parser.parse_args(argv)
 
-    work = Path(tempfile.mkdtemp(prefix="onboarding-demo-"))
+    # Output dir: a fresh temp dir by default, or DEMO_OUTPUT_DIR (used by CI so
+    # the rendered files can be uploaded as an artifact).
+    work = Path(os.environ.get("DEMO_OUTPUT_DIR") or tempfile.mkdtemp(prefix="onboarding-demo-"))
+    work.mkdir(parents=True, exist_ok=True)
     _banner("SETTING UP LOCAL DEMO ENVIRONMENT (no tokens, no real GitHub)")
     print(f"  workspace: {work}")
 

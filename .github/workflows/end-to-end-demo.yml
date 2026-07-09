@@ -1,0 +1,40 @@
+# Manually-triggered end-to-end demo. Runs the real onboarding + feedback loop
+# against local stand-ins (Smartsheet API stub, local bare git repo, fake gh) --
+# no secrets, no real GitHub, no Smartsheet sheet. Watch the flow in the run log
+# and download the rendered onboarding files from the run's Artifacts.
+name: End-to-end demo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run end-to-end demo
+        env:
+          DEMO_OUTPUT_DIR: ${{ github.workspace }}/demo-output
+        run: python demo/run_demo.py
+
+      - name: Upload rendered onboarding files
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-rendered-files
+          path: |
+            demo-output/checkouts/**
+            !demo-output/checkouts/**/.git/**
+          if-no-files-found: warn
