@@ -215,6 +215,22 @@ The workflow uses the real sheet only when `SMARTSHEET_TOKEN` +
 EU/Gov); otherwise it falls back to the sample fixture. The snapshot refreshes
 on each deploy (push to `main` or manual run).
 
+**Auto-refresh reliability.** The workflow has a `schedule:` cron, but GitHub's
+scheduler is *best-effort* and routinely delays or drops high-frequency
+schedules (`*/5`), so the hosted page can go stale. For a dependable refresh
+while you work/demo, trigger the deploy on an interval from a machine you
+control:
+
+```bash
+python demo/auto_deploy.py                 # fire the deploy every 5 min (Ctrl+C to stop)
+python demo/auto_deploy.py --once          # one deploy now
+```
+
+For always-on refresh independent of your laptop, point an external scheduler
+(e.g. Cloudflare Workers Cron, or cron-job.org) at the workflow-dispatch API:
+`POST /repos/<owner>/<repo>/actions/workflows/deploy-dashboard.yml/dispatches`
+with an `Authorization: Bearer <token>` header and body `{"ref":"main"}`.
+
 ## Feedback loop (PR state → Smartsheet)
 
 `src/feedback.py` closes the loop that onboarding opens. For every row with
