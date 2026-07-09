@@ -151,6 +151,36 @@ Against the shipped sample data this processes 4 `Ready` rows: 2 pass (files
 rendered) and 2 fail validation (missing owner / invalid environment), so the
 exit code is `1` — the same semantics as live mode.
 
+## Dynamic dashboard
+
+A live web dashboard (`src/dashboard.py`) renders onboarding metrics from the
+same tracker data — KPI tiles (total / ready / PR created / merged / blocked), a
+status breakdown, an environment breakdown, and blocked / open-PR tables. The
+page polls `/api/data` and re-renders on an interval, so it updates without a
+reload. No extra dependencies (Python stdlib + jinja2).
+
+> Beyond the original Week-1 spec (which described a native Smartsheet
+> dashboard); added because a dynamic dashboard was requested.
+
+```bash
+python src/dashboard.py                 # offline: reads samples/sheet-fixture.json
+# open http://127.0.0.1:8000
+```
+
+It is genuinely dynamic: data is recomputed from the source on every request.
+Edit the fixture (or, in live mode, the Smartsheet sheet) and the next
+auto-refresh shows the change — no restart.
+
+```bash
+python src/dashboard.py --live          # reads the real sheet each refresh
+                                        # (needs SMARTSHEET_TOKEN + SMARTSHEET_SHEET_ID)
+python src/dashboard.py --port 8080 --refresh 5 --fixture samples/ci-fixture.json
+```
+
+Endpoints: `/` (dashboard), `/api/data` (JSON metrics), `/healthz`. Colors use
+the validated status palette; every mark also carries a text label so meaning is
+never color-alone (light + dark mode supported).
+
 ## Idempotency & safety
 
 Safe to re-run. Work is keyed on the sheet row via a deterministic branch name:
