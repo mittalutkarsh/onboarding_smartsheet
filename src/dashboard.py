@@ -256,6 +256,16 @@ def _parse_args(argv=None) -> argparse.Namespace:
 
 
 def main(argv=None) -> int:
+    # Use the OS/corporate trust store for TLS if truststore is installed. This
+    # lets --live work behind a corporate HTTPS-intercepting proxy (where the
+    # bundled certifi CAs would otherwise fail). Harmless if not installed.
+    try:
+        import truststore
+
+        truststore.inject_into_ssl()
+    except Exception:  # noqa: BLE001 - optional convenience only
+        pass
+
     args = _parse_args(argv)
     load_dotenv()
     logging.basicConfig(

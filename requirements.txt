@@ -5,3 +5,6 @@ requests>=2.31,<3
 GitPython>=3.1.40,<4
 jinja2>=3.1,<4
 python-dotenv>=1.0,<2
+# Lets --live use the OS/corporate trust store for TLS (needed behind an
+# HTTPS-intercepting corporate proxy). Optional but recommended.
+truststore>=0.9,<1
