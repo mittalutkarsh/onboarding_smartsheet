@@ -167,7 +167,7 @@ def _make_handler(config: DashboardConfig):
         autoescape=select_autoescape(["html"]),
     )
     page_html = jinja.get_template("dashboard.html.j2").render(
-        refresh_seconds=config.refresh_seconds
+        refresh_seconds=config.refresh_seconds, data_url="/api/data"
     )
 
     class Handler(BaseHTTPRequestHandler):

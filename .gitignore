@@ -16,3 +16,6 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Static dashboard build output
+site/

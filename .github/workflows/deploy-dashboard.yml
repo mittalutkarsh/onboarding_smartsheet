@@ -1,0 +1,57 @@
+# Build the static dashboard and publish it to GitHub Pages, so the dashboard
+# is viewable at a public URL (https://<user>.github.io/<repo>/) with no server.
+# Data is a snapshot baked from samples/sheet-fixture.json at build time.
+#
+# One-time setup: repo Settings -> Pages -> Build and deployment -> Source =
+# "GitHub Actions". Then run this workflow (Actions tab -> Deploy dashboard ->
+# Run workflow), or it runs automatically on push to main.
+name: Deploy dashboard
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build static dashboard
+        run: python demo/build_static_dashboard.py --out ./site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

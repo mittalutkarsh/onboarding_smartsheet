@@ -126,6 +126,9 @@
 
 <script>
 const REFRESH_MS = {{ refresh_seconds }} * 1000;
+// Data endpoint: "/api/data" for the live server, or a static "data.json" for
+// the GitHub Pages export.
+const DATA_URL = "{{ data_url | default('/api/data') }}";
 const STATUS_ORDER = ["New", "Ready", "PR Created", "Merged", "Blocked"];
 const STATUS_VAR = {
   "New": "--st-new", "Ready": "--st-ready", "PR Created": "--st-prcreated",
@@ -198,7 +201,7 @@ function renderPrs(rows) {
 
 async function refresh() {
   try {
-    const res = await fetch("/api/data", { cache: "no-store" });
+    const res = await fetch(DATA_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const d = await res.json();
     document.getElementById("source").textContent = "source: " + d.source;
