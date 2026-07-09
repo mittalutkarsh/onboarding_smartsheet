@@ -60,6 +60,33 @@ class PullRequest:
         return self.state.upper() == "MERGED"
 
 
+@dataclass
+class PRStatus:
+    """Current state of a PR, used by the feedback loop.
+
+    Fields come straight from ``gh pr view --json`` (GitHub's GraphQL enums):
+        state:     ``OPEN`` / ``CLOSED`` / ``MERGED``.
+        mergeable: ``MERGEABLE`` / ``CONFLICTING`` / ``UNKNOWN``.
+    """
+
+    number: Optional[int]
+    url: str
+    state: str
+    mergeable: str
+
+    @property
+    def is_merged(self) -> bool:
+        return self.state.upper() == "MERGED"
+
+    @property
+    def is_closed_unmerged(self) -> bool:
+        return self.state.upper() == "CLOSED"
+
+    @property
+    def has_conflict(self) -> bool:
+        return self.mergeable.upper() == "CONFLICTING"
+
+
 class GitHubClient:
     """Wraps ``gh`` for one target repository (``org/repo``)."""
 
@@ -105,6 +132,42 @@ class GitHubClient:
                 f"gh {' '.join(args)} failed (exit {exc.returncode}): {stderr}"
             ) from exc
         return proc.stdout.strip()
+
+    # ----------------------------------------------------- status lookup
+
+    def get_pr_status(self, pr_number: int) -> PRStatus:
+        """Fetch the current state of a PR by number (feedback loop).
+
+        Args:
+            pr_number: The PR number (parsed from the stored PR URL).
+
+        Returns:
+            A :class:`PRStatus` with ``state`` and ``mergeable``.
+
+        Raises:
+            GitHubCliError: If the ``gh`` call fails or returns unparseable JSON.
+        """
+        out = self._run(
+            [
+                "pr",
+                "view",
+                str(pr_number),
+                "--repo",
+                self._repo_slug,
+                "--json",
+                "number,url,state,mergeable",
+            ]
+        )
+        try:
+            data = json.loads(out) if out else {}
+        except json.JSONDecodeError as exc:
+            raise GitHubCliError(f"Could not parse gh pr view output: {exc}") from exc
+        return PRStatus(
+            number=data.get("number"),
+            url=data.get("url", ""),
+            state=str(data.get("state", "")).upper(),
+            mergeable=str(data.get("mergeable", "")).upper(),
+        )
 
     # --------------------------------------------------- existence check
 

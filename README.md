@@ -181,6 +181,30 @@ Endpoints: `/` (dashboard), `/api/data` (JSON metrics), `/healthz`. Colors use
 the validated status palette; every mark also carries a text label so meaning is
 never color-alone (light + dark mode supported).
 
+## Feedback loop (PR state → Smartsheet)
+
+`src/feedback.py` closes the loop that onboarding opens. For every row with
+`Onboarding Status = PR Created` it reads the current PR state from GitHub
+(`gh pr view`, read-only) and reconciles the row:
+
+| PR state | Row becomes |
+|---|---|
+| Merged | `Onboarding Status = Merged`, `Validation Status = Pass` |
+| Closed without merging | `Onboarding Status = Blocked` + reason |
+| Open but conflicting | `Validation Status = Fail`, `Error Message = Merge conflict` (stays `PR Created`) |
+| Open and mergeable | Refresh `Last Sync Time`, clear error |
+
+It never merges, closes, or edits a PR — humans still own merges. Per-row error
+handling mirrors the onboarding run (log, record, continue).
+
+```bash
+python src/feedback.py            # live: needs SMARTSHEET_TOKEN + SMARTSHEET_SHEET_ID + GITHUB_TOKEN
+python src/feedback.py --dry-run  # offline: list PR-Created rows, no GitHub calls, no write-back
+```
+
+> Spec §14 / Week-3. Not scheduled by default (no cron) — run manually or wire
+> to a schedule later.
+
 ## Idempotency & safety
 
 Safe to re-run. Work is keyed on the sheet row via a deterministic branch name:
