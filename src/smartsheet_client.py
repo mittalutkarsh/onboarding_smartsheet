@@ -247,6 +247,44 @@ class SmartsheetClient:
         logger.info("Updated Smartsheet row %s (%d cell(s)).", row_id, len(cells))
         return resp.json()
 
+    def add_rows(self, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Append new rows to the sheet (used by the repo scanner).
+
+        Args:
+            rows: A list of title->value mappings, one per new row.
+
+        Returns:
+            The parsed JSON response (or a dry-run stub in offline mode).
+        """
+        if not self._title_to_id:
+            self.get_sheet()
+
+        payload: List[Dict[str, Any]] = []
+        for updates in rows:
+            cells = [
+                {"columnId": self._title_to_id[t], "value": v}
+                for t, v in updates.items()
+                if t in self._title_to_id
+            ]
+            if cells:
+                payload.append({"toBottom": True, "cells": cells})
+
+        if not payload:
+            return {"added": 0}
+
+        if self._offline:
+            logger.info("[dry-run] Would add %d row(s).", len(payload))
+            return {"dryRun": True, "added": len(payload)}
+
+        url = f"{_API_BASE}/sheets/{self._sheet_id}/rows"
+        try:
+            resp = self._session.post(url, json=payload, timeout=self._timeout)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            raise SmartsheetError(f"Failed to add rows: {exc}") from exc
+        logger.info("Added %d row(s) to sheet %s.", len(payload), self._sheet_id)
+        return resp.json()
+
     # ------------------------------------------------------------- accessors
 
     def id_to_title(self) -> Dict[int, str]:
