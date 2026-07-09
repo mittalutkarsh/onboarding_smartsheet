@@ -1,0 +1,42 @@
+# No-secret CI smoke test: proves the read -> validate -> render pipeline runs
+# on a clean machine. Uses --dry-run against an all-valid fixture so the job
+# exits 0 (green). No tokens, no network, no PRs, no Smartsheet write-back.
+name: Dry-run smoke test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline in dry-run mode
+        # All-valid fixture -> exit 0. Renders into ./ci-dry-run for the
+        # upload step below. No secrets required.
+        run: |
+          python src/main.py --dry-run \
+            --fixture samples/ci-fixture.json \
+            --output-dir ./ci-dry-run
+
+      - name: Upload rendered files
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-rendered-files
+          path: ci-dry-run/
+          if-no-files-found: error

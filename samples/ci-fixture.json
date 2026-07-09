@@ -1,0 +1,52 @@
+{
+  "id": 111111111,
+  "name": "Git Onboarding Tracker (CI smoke test)",
+  "columns": [
+    {"id": 1, "title": "Team Name", "index": 0},
+    {"id": 2, "title": "GitHub Org", "index": 1},
+    {"id": 3, "title": "GitHub Repo", "index": 2},
+    {"id": 4, "title": "App / Cookbook Name", "index": 3},
+    {"id": 5, "title": "Owner Email", "index": 4},
+    {"id": 6, "title": "Environments", "index": 5},
+    {"id": 7, "title": "Onboarding Status", "index": 6},
+    {"id": 8, "title": "Migration Type", "index": 7},
+    {"id": 9, "title": "Branch Name", "index": 8},
+    {"id": 10, "title": "PR URL", "index": 9},
+    {"id": 11, "title": "Last Sync Time", "index": 10},
+    {"id": 12, "title": "Validation Status", "index": 11},
+    {"id": 13, "title": "Notes", "index": 12},
+    {"id": 14, "title": "Error Message", "index": 13}
+  ],
+  "rows": [
+    {
+      "id": 1,
+      "rowNumber": 1,
+      "cells": [
+        {"columnId": 1, "value": "Alpha Team", "displayValue": "Alpha Team"},
+        {"columnId": 2, "value": "example-org", "displayValue": "example-org"},
+        {"columnId": 3, "value": "alpha-repo", "displayValue": "alpha-repo"},
+        {"columnId": 4, "value": "alpha-app", "displayValue": "alpha-app"},
+        {"columnId": 5, "value": "alpha-owner@example.com", "displayValue": "alpha-owner@example.com"},
+        {"columnId": 6, "value": "dev,test,prod", "displayValue": "dev,test,prod"},
+        {"columnId": 7, "value": "Ready", "displayValue": "Ready"},
+        {"columnId": 8, "value": "New onboarding", "displayValue": "New onboarding"}
+      ]
+    },
+    {
+      "id": 2,
+      "rowNumber": 2,
+      "cells": [
+        {"columnId": 1, "value": "Beta Team", "displayValue": "Beta Team"},
+        {"columnId": 2, "value": "example-org", "displayValue": "example-org"},
+        {"columnId": 3, "value": "beta-repo", "displayValue": "beta-repo"},
+        {"columnId": 4, "value": "beta-app", "displayValue": "beta-app"},
+        {"columnId": 5, "value": "beta-owner@example.com", "displayValue": "beta-owner@example.com"},
+        {"columnId": 6, "value": "dev,prod", "displayValue": "dev,prod"},
+        {"columnId": 7, "value": "Ready", "displayValue": "Ready"},
+        {"columnId": 8, "value": "Existing repo migration", "displayValue": "Existing repo migration"},
+        {"columnId": 9, "value": "onboarding/beta-app", "displayValue": "onboarding/beta-app"}
+      ]
+    }
+  ],
+  "totalRowCount": 2
+}
