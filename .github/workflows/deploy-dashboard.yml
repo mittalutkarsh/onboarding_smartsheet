@@ -38,7 +38,22 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Build static dashboard
-        run: python demo/build_static_dashboard.py --out ./site
+        # If Smartsheet secrets are configured, build from the REAL sheet with
+        # --anonymize (all identifiers stripped, since Pages is public).
+        # Otherwise fall back to the bundled sample fixture so the deploy still
+        # works before any secrets are set.
+        env:
+          SMARTSHEET_TOKEN: ${{ secrets.SMARTSHEET_TOKEN }}
+          SMARTSHEET_SHEET_ID: ${{ secrets.SMARTSHEET_SHEET_ID }}
+          SMARTSHEET_API_BASE: ${{ secrets.SMARTSHEET_API_BASE }}
+        run: |
+          if [ -n "$SMARTSHEET_TOKEN" ] && [ -n "$SMARTSHEET_SHEET_ID" ]; then
+            echo "Building from LIVE Smartsheet (anonymized)"
+            python demo/build_static_dashboard.py --live --anonymize --out ./site
+          else
+            echo "No Smartsheet secrets set; building from sample fixture"
+            python demo/build_static_dashboard.py --out ./site
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

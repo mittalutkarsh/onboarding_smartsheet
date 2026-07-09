@@ -193,6 +193,28 @@ Endpoints: `/` (dashboard), `/api/data` (JSON metrics), `/healthz`. Colors use
 the validated status palette; every mark also carries a text label so meaning is
 never color-alone (light + dark mode supported).
 
+### Hosted dashboard on GitHub Pages (anonymized)
+
+`demo/build_static_dashboard.py` exports a static bundle (`index.html` +
+`data.json`) that the **Deploy dashboard** workflow publishes to GitHub Pages —
+so the dashboard is viewable at a public URL with no server.
+
+Because Pages is **public**, the live build is always **anonymized**: team /
+repo / app / org names become stable pseudonyms (`Team 01`, `repo-01`), owner
+emails are dropped, PR URLs become `PR (redacted)`, and error/notes text has
+identifiers, emails, and URLs scrubbed. Only counts, statuses, and environment
+names survive.
+
+```bash
+python demo/build_static_dashboard.py                     # demo data (fixture)
+python demo/build_static_dashboard.py --live --anonymize  # real sheet, scrubbed
+```
+
+The workflow uses the real sheet only when `SMARTSHEET_TOKEN` +
+`SMARTSHEET_SHEET_ID` repo secrets are set (optional `SMARTSHEET_API_BASE` for
+EU/Gov); otherwise it falls back to the sample fixture. The snapshot refreshes
+on each deploy (push to `main` or manual run).
+
 ## Feedback loop (PR state → Smartsheet)
 
 `src/feedback.py` closes the loop that onboarding opens. For every row with
