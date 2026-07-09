@@ -42,6 +42,24 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Scan repos and sync status to Smartsheet (ground truth)
+        # Re-derive onboarding status from the actual repos and upsert into the
+        # tracker, so newly-created repos show up automatically. Uses the
+        # built-in token for public-repo reads. continue-on-error means a scan
+        # hiccup (e.g. rate limit) never blocks the dashboard deploy.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SMARTSHEET_TOKEN: ${{ secrets.SMARTSHEET_TOKEN }}
+          SMARTSHEET_SHEET_ID: ${{ secrets.SMARTSHEET_SHEET_ID }}
+          SMARTSHEET_API_BASE: ${{ secrets.SMARTSHEET_API_BASE }}
+        run: |
+          if [ -n "$SMARTSHEET_TOKEN" ] && [ -n "$SMARTSHEET_SHEET_ID" ]; then
+            python src/repo_scanner.py --owner "${{ vars.SCAN_OWNER || 'mittalutkarsh' }}"
+          else
+            echo "No Smartsheet secrets set; skipping repo scan."
+          fi
+
       - name: Build static dashboard
         # If Smartsheet secrets are configured, build from the REAL sheet with
         # --anonymize (all identifiers stripped, since Pages is public).
