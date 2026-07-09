@@ -5,6 +5,9 @@
 .workspace/
 onboarding-repos-*/
 
+# Dry-run rendered output
+.dry-run/
+
 # Python
 __pycache__/
 *.py[cod]
