@@ -23,6 +23,18 @@ Write PR URL + status back to the Smartsheet row
 A human reviewer approves every PR. The automation **never auto-merges,
 force-pushes, or deletes anything.**
 
+## See it end-to-end in 30 seconds (no setup)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python demo/run_demo.py --dashboard      # then open http://127.0.0.1:8000
+```
+
+Runs the whole loop — onboarding → PR → write-back → merge → feedback →
+dashboard — against local stand-ins, with **no tokens, no GitHub, no Smartsheet
+sheet**. See [`demo/README.md`](demo/README.md).
+
 ## Scope
 
 Week-1 only: `Smartsheet row → local script → Git branch → PR → Smartsheet
