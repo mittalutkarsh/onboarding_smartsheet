@@ -127,6 +127,30 @@ The script:
 Exit code is `0` when every row succeeds, `1` if any row failed (each failure is
 still recorded on its own row), `2` on missing configuration.
 
+### Dry run (no tokens, no network)
+
+Preview the whole read → validate → render flow against the bundled sample
+fixture without any credentials or side effects:
+
+```bash
+python src/main.py --dry-run
+```
+
+In dry-run mode the tool reads rows from a local JSON fixture (default
+`samples/sheet-fixture.json`), validates them, and **renders the onboarding
+files into a temp dir for inspection** — but it does **not** clone, commit,
+push, open PRs, or write to Smartsheet. Each Smartsheet write is logged as
+`[dry-run] Would PUT ...` so you can see exactly what live mode would record.
+
+```bash
+python src/main.py --dry-run --fixture samples/sheet-fixture.json \
+                   --output-dir ./.dry-run     # inspect rendered files here
+```
+
+Against the shipped sample data this processes 4 `Ready` rows: 2 pass (files
+rendered) and 2 fail validation (missing owner / invalid environment), so the
+exit code is `1` — the same semantics as live mode.
+
 ## Idempotency & safety
 
 Safe to re-run. Work is keyed on the sheet row via a deterministic branch name:

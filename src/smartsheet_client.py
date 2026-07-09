@@ -20,6 +20,7 @@ Auth is a Bearer token in the ``Authorization`` header.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -75,6 +76,52 @@ class SmartsheetClient:
         self._id_to_title: Dict[int, str] = {}
         self._title_to_id: Dict[str, int] = {}
 
+        # Offline (dry-run) mode: reads come from a local fixture and writes are
+        # logged instead of PUT. Normal construction is always online.
+        self._offline: bool = False
+        self._offline_sheet: Optional[Dict[str, Any]] = None
+
+    # -------------------------------------------------------- offline / dry-run
+
+    @classmethod
+    def from_fixture(cls, fixture_path: str) -> "SmartsheetClient":
+        """Build an offline client backed by a local sheet-JSON fixture.
+
+        Used by ``--dry-run``: no token or network is required. Reads return the
+        fixture; :meth:`update_row` logs the intended write instead of sending
+        it. The fixture must be in the Smartsheet ``GET /sheets/{id}`` shape
+        (``columns`` + ``rows``), e.g. ``samples/sheet-fixture.json``.
+
+        Args:
+            fixture_path: Path to the JSON fixture file.
+
+        Returns:
+            An offline :class:`SmartsheetClient`.
+        """
+        try:
+            with open(fixture_path, "r", encoding="utf-8") as fh:
+                sheet = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SmartsheetError(f"Could not load fixture {fixture_path}: {exc}") from exc
+
+        # Bypass the token-requiring __init__; wire up offline attributes.
+        self = cls.__new__(cls)
+        self._sheet_id = str(sheet.get("id", "fixture"))
+        self._timeout = 0
+        self._session = None  # type: ignore[assignment]
+        self._id_to_title = {}
+        self._title_to_id = {}
+        self._offline = True
+        self._offline_sheet = sheet
+        self._build_column_map(sheet)
+        logger.info("Loaded offline fixture: %s", fixture_path)
+        return self
+
+    @property
+    def offline(self) -> bool:
+        """True when this client is backed by a fixture (dry-run)."""
+        return self._offline
+
     # ------------------------------------------------------------------ read
 
     def get_sheet(self) -> Dict[str, Any]:
@@ -86,6 +133,12 @@ class SmartsheetClient:
         Raises:
             SmartsheetError: On HTTP error or malformed response.
         """
+        if self._offline:
+            # Offline mode: serve the fixture; still rebuild the map so reads
+            # and (logged) writes share one source of truth.
+            self._build_column_map(self._offline_sheet)  # type: ignore[arg-type]
+            return self._offline_sheet  # type: ignore[return-value]
+
         url = f"{_API_BASE}/sheets/{self._sheet_id}"
         try:
             resp = self._session.get(url, timeout=self._timeout)
@@ -176,6 +229,12 @@ class SmartsheetClient:
             )
 
         payload = [{"id": row_id, "cells": cells}]
+
+        if self._offline:
+            # Dry-run: log the exact payload we WOULD send; never hit the API.
+            logger.info("[dry-run] Would PUT row %s: %s", row_id, updates)
+            return {"dryRun": True, "rowId": row_id, "cells": cells}
+
         url = f"{_API_BASE}/sheets/{self._sheet_id}/rows"
         try:
             resp = self._session.put(url, json=payload, timeout=self._timeout)

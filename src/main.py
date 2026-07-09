@@ -34,6 +34,7 @@ Org/repo/app come from each Smartsheet row (placeholders in docs:
 
 from __future__ import annotations
 
+import argparse
 import logging
 import os
 import re
@@ -104,12 +105,19 @@ def process_row(
     github_token: str,
     author_name: str,
     author_email: str,
+    dry_run: bool = False,
 ) -> None:
     """Run the full onboarding pipeline for one row.
 
     Raises on failure; the caller (:func:`run`) catches and records it. Keeping
     the happy path here and the error write-back in the caller means every exit
     -- success or failure -- results in exactly one Smartsheet write.
+
+    When ``dry_run`` is True, the row is validated and its files are rendered
+    into ``workspace`` for inspection, but nothing is cloned, committed, pushed,
+    or opened as a PR, and the Smartsheet write is only logged (see the offline
+    client). This lets you exercise read + validate + render with no tokens and
+    no network side effects.
     """
     row_id = record["row_id"]
     team = record.get("Team Name", "<unknown team>")
@@ -130,6 +138,36 @@ def process_row(
     repo = record["GitHub Repo"]
     branch = _branch_name(record)
     context = _build_context(record, result.environments)
+
+    # --- Dry-run: render for inspection, then report the plan. No git/PR. ---
+    if dry_run:
+        out_root = workspace / f"{_slugify(org)}__{_slugify(branch)}"
+        files = renderer.render_all(out_root, context)
+        rels = sorted(str(Path(f).relative_to(out_root)) for f in files)
+        logger.info(
+            "[dry-run] row %s PASSED validation. Plan:\n"
+            "    target repo : %s/%s\n"
+            "    branch       : %s\n"
+            "    PR title     : Onboard %s\n"
+            "    base branch  : main (detected at clone time in a live run)\n"
+            "    rendered %d file(s) into %s:\n%s",
+            row_id, org, repo, branch, context["app_name"],
+            len(files), out_root,
+            "\n".join(f"        - {r}" for r in rels),
+        )
+        # Show exactly what WOULD be written back (offline client just logs it).
+        smartsheet.update_row(
+            row_id,
+            {
+                "Onboarding Status": "PR Created",
+                "PR URL": "(dry-run: PR not created)",
+                "Last Sync Time": _now_iso(),
+                "Validation Status": "Pass",
+                "Notes": "dry-run: files rendered, no git/PR side effects",
+                "Error Message": "",
+            },
+        )
+        return
 
     # 2. Clone (or reuse) + 3. branch (idempotent).
     checkout_path = workspace / f"{_slugify(org)}__{_slugify(repo)}"
@@ -221,39 +259,84 @@ def _record_failure(
 # --------------------------------------------------------------------------- #
 # Entry point
 # --------------------------------------------------------------------------- #
-def run() -> int:
+# Default fixture: the sample sheet snapshot shipped in the repo.
+DEFAULT_FIXTURE = Path(__file__).resolve().parent.parent / "samples" / "sheet-fixture.json"
+
+
+def _parse_args(argv=None) -> "argparse.Namespace":
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        prog="onboarding-automation",
+        description="Read Ready rows from the Smartsheet tracker and open "
+        "onboarding PRs. Use --dry-run to test read+validate+render offline.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Read rows from a local fixture (no token/network), validate, and "
+        "render files for inspection. Does not clone, push, open PRs, or write "
+        "back to Smartsheet.",
+    )
+    parser.add_argument(
+        "--fixture",
+        default=str(DEFAULT_FIXTURE),
+        help=f"Path to the sheet JSON fixture for --dry-run "
+        f"(default: {DEFAULT_FIXTURE}).",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Directory to render dry-run files into (default: a fresh temp dir).",
+    )
+    return parser.parse_args(argv)
+
+
+def run(argv=None) -> int:
     """Fetch Ready rows and process each. Returns a process exit code."""
+    args = _parse_args(argv)
     load_dotenv()
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
     )
 
-    # --- Required config (fail fast, but never print secret values). ---
-    try:
-        smartsheet_token = os.environ["SMARTSHEET_TOKEN"]
-        sheet_id = os.environ["SMARTSHEET_SHEET_ID"]
-        github_token = os.environ["GITHUB_TOKEN"]
-    except KeyError as exc:
-        logger.error("Missing required environment variable: %s", exc)
-        return 2
-
     author_name = os.environ.get("GIT_AUTHOR_NAME", "onboarding-automation")
     author_email = os.environ.get(
         "GIT_AUTHOR_EMAIL", "onboarding-automation@users.noreply.github.com"
     )
-    workspace = Path(
-        os.environ.get("WORKSPACE_DIR")
-        or tempfile.mkdtemp(prefix="onboarding-repos-")
-    )
+    renderer = TemplateRenderer()
+
+    # --- Client + workspace: offline (dry-run) vs live. ---
+    if args.dry_run:
+        logger.info("DRY RUN: no tokens required, no network side effects.")
+        try:
+            smartsheet = SmartsheetClient.from_fixture(args.fixture)
+        except SmartsheetError as exc:
+            logger.error("Could not load fixture: %s", exc)
+            return 2
+        github_token = ""  # unused in dry-run
+        workspace = Path(
+            args.output_dir or tempfile.mkdtemp(prefix="onboarding-dryrun-")
+        )
+    else:
+        # --- Required config (fail fast, but never print secret values). ---
+        try:
+            smartsheet_token = os.environ["SMARTSHEET_TOKEN"]
+            sheet_id = os.environ["SMARTSHEET_SHEET_ID"]
+            github_token = os.environ["GITHUB_TOKEN"]
+        except KeyError as exc:
+            logger.error("Missing required environment variable: %s", exc)
+            return 2
+        # gh authenticates from GH_TOKEN/GITHUB_TOKEN; make sure it is present.
+        os.environ.setdefault("GH_TOKEN", github_token)
+        smartsheet = SmartsheetClient(smartsheet_token, sheet_id)
+        workspace = Path(
+            os.environ.get("WORKSPACE_DIR")
+            or tempfile.mkdtemp(prefix="onboarding-repos-")
+        )
+
     workspace.mkdir(parents=True, exist_ok=True)
     logger.info("Using workspace: %s", workspace)
-
-    # gh authenticates from GH_TOKEN/GITHUB_TOKEN; make sure it is present.
-    os.environ.setdefault("GH_TOKEN", github_token)
-
-    smartsheet = SmartsheetClient(smartsheet_token, sheet_id)
-    renderer = TemplateRenderer()
 
     try:
         rows = smartsheet.get_ready_rows()
@@ -277,6 +360,7 @@ def run() -> int:
                 github_token,
                 author_name,
                 author_email,
+                dry_run=args.dry_run,
             )
         except (
             ValueError,
